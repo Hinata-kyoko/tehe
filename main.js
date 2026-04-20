@@ -34,9 +34,8 @@ function init() {
 
 function setupGenAI(key) {
     genAI = new GoogleGenerativeAI(key);
-    // In 2026, gemini-3-flash is the standard efficient model. 
-    // Specifying apiVersion 'v1' avoids 404 errors on older beta endpoints.
-    model = genAI.getGenerativeModel({ model: "gemini-3-flash" }, { apiVersion: "v1" });
+    // Using gemini-2.5-flash-lite for better availability and faster response
+    model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 }
 
 // Camera Handling
@@ -156,8 +155,8 @@ async function handleSend() {
         // Ensure to pause speech out if generating new one
         if('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-        // Call Gemini API
-        const result = await model.generateContent([textQuery, ...imageParts]);
+        // Call Gemini API with retry logic
+        const result = await generateContentWithRetry([textQuery, ...imageParts]);
         const responseText = result.response.text();
         
         // Output response
@@ -170,6 +169,24 @@ async function handleSend() {
     } finally {
         DOM.loading.classList.add('hidden');
         scrollToBottom();
+    }
+}
+
+async function generateContentWithRetry(parts, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await model.generateContent(parts);
+        } catch (error) {
+            if (error.message.includes('503') || error.message.includes('high demand')) {
+                if (attempt < maxRetries) {
+                    const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+                    console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+            }
+            throw error; // Re-throw if not 503 or max retries reached
+        }
     }
 }
 
