@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,6 +11,7 @@
     <!-- Google Material Icons for UI -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
+
 <body>
     <div id="app-container">
         <!-- Live camera feed -->
@@ -20,7 +22,12 @@
         <div id="ui-overlay">
             <header>
                 <h1>Vision Cam</h1>
-                <button id="settingsBtn" class="icon-btn" aria-label="Settings"><span class="material-icons">settings</span></button>
+                <div class="header-actions">
+                    <button id="clearChatBtn" class="icon-btn" aria-label="Clear chat"><span
+                            class="material-icons">delete_outline</span></button>
+                    <button id="settingsBtn" class="icon-btn" aria-label="Settings"><span
+                            class="material-icons">settings</span></button>
+                </div>
             </header>
 
             <div id="chatContainer">
@@ -55,7 +62,8 @@
                     <button id="saveApiKeyBtn" class="btn primary-btn">Save Key</button>
                     <button id="closeSettingsBtn" class="btn secondary-btn">Cancel</button>
                 </div>
-                <p class="footnote">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>.</p>
+                <p class="footnote">Get a free key from <a href="https://aistudio.google.com/app/apikey"
+                        target="_blank">Google AI Studio</a>.</p>
             </div>
         </div>
     </div>
@@ -69,4 +77,5 @@
         }
     </script>
 </body>
+
 </html>

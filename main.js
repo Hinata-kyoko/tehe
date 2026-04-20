@@ -18,6 +18,13 @@ const DOM = {
 let genAI = null;
 let model = null;
 
+// Conversation history — stores text-only pairs to minimize tokens.
+// Images are NOT stored in history (huge token cost); only the current frame is sent.
+let conversationHistory = [];
+
+// Max history turns to keep (older turns are dropped to save tokens)
+const MAX_HISTORY_TURNS = 10;
+
 // Initialization
 function init() {
     const key = localStorage.getItem('gemini_api_key');
@@ -35,7 +42,12 @@ function init() {
 function setupGenAI(key) {
     genAI = new GoogleGenerativeAI(key);
     // Using gemini-2.5-flash-lite for better availability and faster response
-    model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash-lite",
+        systemInstruction: "You are a helpful vision assistant. Keep responses concise (1-3 sentences) unless the user asks for detail. You can see images from a camera feed. Reference previous conversation when relevant."
+    });
+    // Reset history when API key changes
+    conversationHistory = [];
 }
 
 // Camera Handling
@@ -72,7 +84,6 @@ function setupSpeech() {
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             DOM.textInput.value = transcript;
-            // Optionally auto-send if required, but lets wait for user to click send or we can trigger it
             handleSend();
         };
 
@@ -109,12 +120,9 @@ function toggleListening() {
 
 function speak(text) {
     if ('speechSynthesis' in window) {
-        // Cancel any ongoing speech
         window.speechSynthesis.cancel();
-        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
-        // Remove markdown asterisks for better speech output
         utterance.text = text.replace(/[*_~`#]/g, '');
         window.speechSynthesis.speak(utterance);
     }
@@ -143,22 +151,34 @@ async function handleSend() {
         
         // Prepare image for Gemini
         const base64Data = imgDataUrl.split(',')[1];
-        const imageParts = [
-            {
-                inlineData: {
-                    data: base64Data,
-                    mimeType: "image/jpeg"
-                }
+        const imagePart = {
+            inlineData: {
+                data: base64Data,
+                mimeType: "image/jpeg"
             }
-        ];
+        };
 
-        // Ensure to pause speech out if generating new one
-        if('speechSynthesis' in window) window.speechSynthesis.cancel();
+        // Cancel ongoing speech before generating new response
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-        // Call Gemini API with retry logic
-        const result = await generateContentWithRetry([textQuery, ...imageParts]);
+        // Start a chat session with text-only history (no past images — saves tokens)
+        const chat = model.startChat({ history: conversationHistory });
+
+        // Send the current image + text as the new user message
+        const result = await sendWithRetry(chat, [textQuery, imagePart]);
         const responseText = result.response.text();
-        
+
+        // Store ONLY text in history (images are excluded to minimize tokens)
+        conversationHistory.push(
+            { role: "user", parts: [{ text: textQuery }] },
+            { role: "model", parts: [{ text: responseText }] }
+        );
+
+        // Trim history to keep token usage bounded
+        if (conversationHistory.length > MAX_HISTORY_TURNS * 2) {
+            conversationHistory = conversationHistory.slice(-MAX_HISTORY_TURNS * 2);
+        }
+
         // Output response
         addMessage(responseText, 'ai');
         speak(responseText);
@@ -172,20 +192,20 @@ async function handleSend() {
     }
 }
 
-async function generateContentWithRetry(parts, maxRetries = 3) {
+async function sendWithRetry(chat, parts, maxRetries = 3) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            return await model.generateContent(parts);
+            return await chat.sendMessage(parts);
         } catch (error) {
             if (error.message.includes('503') || error.message.includes('high demand')) {
                 if (attempt < maxRetries) {
-                    const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+                    const delay = Math.pow(2, attempt) * 1000;
                     console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     continue;
                 }
             }
-            throw error; // Re-throw if not 503 or max retries reached
+            throw error;
         }
     }
 }
@@ -195,13 +215,14 @@ function captureImage() {
     DOM.canvas.width = DOM.video.videoWidth;
     DOM.canvas.height = DOM.video.videoHeight;
     context.drawImage(DOM.video, 0, 0, DOM.canvas.width, DOM.canvas.height);
-    return DOM.canvas.toDataURL('image/jpeg', 0.8);
+    // Lower quality to 0.6 to reduce base64 size and token usage
+    return DOM.canvas.toDataURL('image/jpeg', 0.6);
 }
 
 function addMessage(text, sender) {
     const div = document.createElement('div');
     div.className = `chat-bubble ${sender}`;
-    // Simple markdown to HTML for bold (only handles basic text for now)
+    // Simple markdown to HTML for bold
     div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     DOM.chatHistory.appendChild(div);
     scrollToBottom();
@@ -209,6 +230,11 @@ function addMessage(text, sender) {
 
 function scrollToBottom() {
     DOM.chatHistory.parentElement.scrollTop = DOM.chatHistory.parentElement.scrollHeight;
+}
+
+function clearChat() {
+    conversationHistory = [];
+    DOM.chatHistory.innerHTML = '';
 }
 
 // Event Listeners
@@ -240,6 +266,10 @@ function setupEventListeners() {
             alert("Please enter a valid API key.");
         }
     });
+
+    // Clear chat button
+    const clearBtn = document.getElementById('clearChatBtn');
+    if (clearBtn) clearBtn.addEventListener('click', clearChat);
 }
 
 // Start

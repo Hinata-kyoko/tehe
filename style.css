@@ -73,6 +73,12 @@ header h1 {
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .icon-btn {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
