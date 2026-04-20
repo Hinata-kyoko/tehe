@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gemini Vision Cam</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Google Material Icons for UI -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Live camera feed -->
+        <video id="videoElement" autoplay playsinline></video>
+        <canvas id="canvasElement" style="display:none;"></canvas>
+
+        <!-- Main UI Overlay -->
+        <div id="ui-overlay">
+            <header>
+                <h1>Vision Cam</h1>
+                <button id="settingsBtn" class="icon-btn" aria-label="Settings"><span class="material-icons">settings</span></button>
+            </header>
+
+            <div id="chatContainer">
+                <div id="chatHistory"></div>
+                <!-- Loading indicator -->
+                <div id="loadingIndicator" class="hidden">
+                    <div class="spinner"></div>
+                    <span>Thinking...</span>
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <div class="input-container glass-panel">
+                    <button id="micBtn" class="icon-btn action-btn mic-btn" aria-label="Voice input">
+                        <span class="material-icons">mic</span>
+                    </button>
+                    <input type="text" id="textInput" placeholder="Ask something about what you see...">
+                    <button id="snapAndSendBtn" class="icon-btn action-btn send-btn" aria-label="Snap picture and send">
+                        <span class="material-icons">camera</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal (API Key) -->
+        <div id="settingsModal" class="modal hidden glass-modal">
+            <div class="modal-content">
+                <h2>Settings</h2>
+                <p>Please enter your Gemini API Key. It will be saved locally in your browser.</p>
+                <input type="password" id="apiKeyInput" placeholder="AIze...">
+                <div class="modal-actions">
+                    <button id="saveApiKeyBtn" class="btn primary-btn">Save Key</button>
+                    <button id="closeSettingsBtn" class="btn secondary-btn">Cancel</button>
+                </div>
+                <p class="footnote">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
