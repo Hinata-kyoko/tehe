@@ -1,81 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini Vision Cam</title>
-    <link rel="manifest" href="./manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodLens XR</title>
+    <meta name="theme-color" content="#11261f">
+    <meta name="description" content="Capture meals, estimate nutrition, and review your daily goals in WebXR.">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- Google Material Icons for UI -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
-
 <body>
-    <div id="app-container">
-        <!-- Live camera feed -->
-        <video id="videoElement" autoplay playsinline></video>
-        <canvas id="canvasElement" style="display:none;"></canvas>
-
-        <!-- Main UI Overlay -->
-        <div id="ui-overlay">
-            <header>
-                <h1>Vision Cam</h1>
-                <div class="header-actions">
-                    <button id="clearChatBtn" class="icon-btn" aria-label="Clear chat"><span
-                            class="material-icons">delete_outline</span></button>
-                    <button id="settingsBtn" class="icon-btn" aria-label="Settings"><span
-                            class="material-icons">settings</span></button>
-                </div>
-            </header>
-
-            <div id="chatContainer">
-                <div id="chatHistory"></div>
-                <!-- Loading indicator -->
-                <div id="loadingIndicator" class="hidden">
-                    <div class="spinner"></div>
-                    <span>Thinking...</span>
+    <div class="page-shell">
+        <header class="hero-card surface">
+            <div class="hero-copy">
+                <p class="eyebrow">WebXR nutrition tracker</p>
+                <h1>Capture food fast. Review goals in AR.</h1>
+                <p class="hero-text">
+                    Built for low-friction meal logging on Snap Spectacles and Meta Quest 3 browser.
+                    Use a photo when camera upload is available, or describe the meal and keep moving.
+                </p>
+                <div class="chip-row">
+                    <span class="chip">Spectacles friendly</span>
+                    <span class="chip">Quest 3 browser ready</span>
+                    <span class="chip">Local-first logs</span>
                 </div>
             </div>
-
-            <div class="controls-area">
-                <div class="input-container glass-panel">
-                    <button id="micBtn" class="icon-btn action-btn mic-btn" aria-label="Voice input">
-                        <span class="material-icons">mic</span>
-                    </button>
-                    <input type="text" id="textInput" placeholder="Ask something about what you see...">
-                    <button id="snapAndSendBtn" class="icon-btn action-btn send-btn" aria-label="Snap picture and send">
-                        <span class="material-icons">camera</span>
-                    </button>
+            <div class="hero-side">
+                <div class="hero-stat">
+                    <span class="stat-label">Today</span>
+                    <span class="stat-value" id="hero-calories">0 kcal</span>
+                    <span class="stat-caption" id="hero-coach">No meals logged yet.</span>
                 </div>
+                <button id="enter-xr" class="primary-btn" disabled>Checking WebXR...</button>
+                <p class="microcopy" id="xr-status">WebXR support is being checked.</p>
             </div>
-        </div>
+        </header>
 
-        <!-- Settings Modal (API Key) -->
-        <div id="settingsModal" class="modal hidden glass-modal">
-            <div class="modal-content">
-                <h2>Settings</h2>
-                <p>Please enter your Gemini API Key. It will be saved locally in your browser.</p>
-                <input type="password" id="apiKeyInput" placeholder="AIze...">
-                <div class="modal-actions">
-                    <button id="saveApiKeyBtn" class="btn primary-btn">Save Key</button>
-                    <button id="closeSettingsBtn" class="btn secondary-btn">Cancel</button>
+        <main class="app-grid">
+            <section class="surface capture-card">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Meal capture</p>
+                        <h2>Log a meal</h2>
+                    </div>
+                    <button id="start-voice" class="ghost-btn" type="button" hidden>Voice note</button>
                 </div>
-                <p class="footnote">Get a free key from <a href="https://aistudio.google.com/app/apikey"
-                        target="_blank">Google AI Studio</a>.</p>
-            </div>
-        </div>
+
+                <div class="capture-grid">
+                    <label class="upload-zone" for="meal-photo">
+                        <input id="meal-photo" type="file" accept="image/*" capture="environment">
+                        <span class="upload-title">Take or upload a food photo</span>
+                        <span class="upload-copy">Works where the browser allows camera upload. Text fallback stays available.</span>
+                    </label>
+                    <div class="camera-panel surface" id="camera-panel">
+                        <video id="camera-stream" playsinline muted></video>
+                        <div class="camera-actions">
+                            <button id="open-camera" class="ghost-btn" type="button">Open camera</button>
+                            <button id="capture-frame" class="primary-btn" type="button" disabled>Capture frame</button>
+                            <button id="close-camera" class="ghost-btn" type="button" disabled>Close</button>
+                        </div>
+                        <p class="microcopy" id="camera-status">
+                            Live camera capture works on secure mobile browsers that expose `getUserMedia()`.
+                        </p>
+                    </div>
+                    <div class="photo-preview hidden" id="photo-preview-wrap">
+                        <img id="photo-preview" alt="Meal preview">
+                        <button id="clear-photo" class="ghost-btn" type="button">Remove photo</button>
+                    </div>
+                </div>
+
+                <label class="input-label" for="meal-description">Description</label>
+                <textarea
+                    id="meal-description"
+                    rows="4"
+                    placeholder="Example: grilled paneer wrap, mint chutney, and iced coffee"
+                ></textarea>
+
+                <div class="quick-chips" id="quick-chips">
+                    <button type="button" class="quick-chip" data-sample="Masala dosa with sambar and chutney">Masala dosa</button>
+                    <button type="button" class="quick-chip" data-sample="Chicken rice bowl with avocado and salsa">Chicken bowl</button>
+                    <button type="button" class="quick-chip" data-sample="Greek yogurt with berries and granola">Yogurt bowl</button>
+                    <button type="button" class="quick-chip" data-sample="Protein shake with banana and peanut butter">Protein shake</button>
+                </div>
+
+                <div class="form-row">
+                    <label class="field">
+                        <span class="input-label">Meal type</span>
+                        <select id="meal-type">
+                            <option value="breakfast">Breakfast</option>
+                            <option value="lunch">Lunch</option>
+                            <option value="dinner">Dinner</option>
+                            <option value="snack">Snack</option>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span class="input-label">Gemini model</span>
+                        <input id="model-name" type="text" placeholder="gemini-2.5-flash-lite">
+                    </label>
+                </div>
+
+                <details class="manual-panel">
+                    <summary>Manual nutrition fallback</summary>
+                    <p class="microcopy">Use this if you want to log quickly without an AI estimate.</p>
+                    <div class="manual-grid">
+                        <label class="field">
+                            <span class="input-label">Calories</span>
+                            <input id="manual-calories" type="number" min="0" step="1" placeholder="540">
+                        </label>
+                        <label class="field">
+                            <span class="input-label">Protein (g)</span>
+                            <input id="manual-protein" type="number" min="0" step="0.1" placeholder="32">
+                        </label>
+                        <label class="field">
+                            <span class="input-label">Carbs (g)</span>
+                            <input id="manual-carbs" type="number" min="0" step="0.1" placeholder="48">
+                        </label>
+                        <label class="field">
+                            <span class="input-label">Fat (g)</span>
+                            <input id="manual-fat" type="number" min="0" step="0.1" placeholder="18">
+                        </label>
+                    </div>
+                </details>
+
+                <div class="action-row">
+                    <button id="analyze-meal" class="primary-btn" type="button">Analyze and save</button>
+                    <button id="clear-entry" class="ghost-btn" type="button">Reset form</button>
+                </div>
+
+                <p class="status-line" id="entry-status">Ready for the next meal.</p>
+            </section>
+
+            <section class="surface dashboard-card">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Daily goals</p>
+                        <h2>Progress snapshot</h2>
+                    </div>
+                    <button id="clear-today" class="ghost-btn" type="button">Clear today</button>
+                </div>
+
+                <div class="score-grid">
+                    <article class="metric-card emphasis">
+                        <span class="metric-label">Calories</span>
+                        <strong id="metric-calories">0 / 2100</strong>
+                        <div class="meter"><span id="meter-calories"></span></div>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Protein</span>
+                        <strong id="metric-protein">0 / 140g</strong>
+                        <div class="meter"><span id="meter-protein"></span></div>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Carbs</span>
+                        <strong id="metric-carbs">0 / 220g</strong>
+                        <div class="meter"><span id="meter-carbs"></span></div>
+                    </article>
+                    <article class="metric-card">
+                        <span class="metric-label">Fat</span>
+                        <strong id="metric-fat">0 / 70g</strong>
+                        <div class="meter"><span id="meter-fat"></span></div>
+                    </article>
+                </div>
+
+                <div class="coach-strip" id="coach-strip">
+                    Log a meal to get a daily comparison and next-step suggestion.
+                </div>
+
+                <div class="split-panel">
+                    <article>
+                        <p class="mini-heading">Latest estimate</p>
+                        <div id="latest-analysis" class="analysis-card empty-card">
+                            No meal analysis yet.
+                        </div>
+                    </article>
+                    <article>
+                        <p class="mini-heading">Today in XR</p>
+                        <div class="analysis-card">
+                            <p id="xr-summary-copy">
+                                Your AR dashboard will show a world-space summary board with meals, goals, and a coach view.
+                            </p>
+                            <p class="microcopy">
+                                XR interaction is kept to a single select action so hand input on Spectacles and Quest stays simple.
+                            </p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="surface timeline-card">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Meal history</p>
+                        <h2>Today's log</h2>
+                    </div>
+                </div>
+                <div id="meal-log" class="timeline-list">
+                    <div class="empty-card">No meals logged today.</div>
+                </div>
+            </section>
+
+            <section class="surface settings-card">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Settings</p>
+                        <h2>Targets and API</h2>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <label class="field wide">
+                        <span class="input-label">Gemini API key</span>
+                        <input id="api-key" type="password" placeholder="Paste your Gemini API key">
+                    </label>
+                    <label class="field">
+                        <span class="input-label">Calorie goal</span>
+                        <input id="goal-calories" type="number" min="0" step="1">
+                    </label>
+                    <label class="field">
+                        <span class="input-label">Protein goal (g)</span>
+                        <input id="goal-protein" type="number" min="0" step="1">
+                    </label>
+                    <label class="field">
+                        <span class="input-label">Carb goal (g)</span>
+                        <input id="goal-carbs" type="number" min="0" step="1">
+                    </label>
+                    <label class="field">
+                        <span class="input-label">Fat goal (g)</span>
+                        <input id="goal-fat" type="number" min="0" step="1">
+                    </label>
+                </div>
+
+                <div class="action-row">
+                    <a
+                        class="ghost-btn button-link"
+                        href="https://aistudio.google.com/app/apikey"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >Get Gemini API key</a>
+                    <button id="save-settings" class="primary-btn" type="button">Save settings</button>
+                </div>
+
+                <p class="microcopy">
+                    The browser version keeps your logs and API key in local storage on this device.
+                    For production, move Gemini API calls behind a server so the key is not exposed client-side.
+                </p>
+            </section>
+        </main>
     </div>
 
     <script type="module" src="main.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
 </body>
-
 </html>

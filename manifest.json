@@ -1,21 +1,17 @@
 {
-  "name": "Gemini Vision Cam PWA",
-  "short_name": "VisionCam",
-  "description": "AI-powered camera app using Gemini Flash to answer questions based on your camera feed.",
-  "start_url": "./",
+  "name": "FoodLens XR",
+  "short_name": "FoodLens",
+  "description": "Capture meals, estimate calories, and review your day in WebXR.",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#f4efe6",
+  "theme_color": "#11261f",
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0iIzRCOEVGRiIvPjwvc3ZnPg==",
-      "sizes": "192x192",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0iIzRCOEVGRiIvPjwvc3ZnPg==",
-      "sizes": "512x512",
-      "type": "image/svg+xml"
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
